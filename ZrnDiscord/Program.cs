@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿using CSScriptLibrary;
+using Discord;
 using Discord.WebSocket;
 using System;
 using System.IO;
@@ -14,6 +15,14 @@ namespace ZrnDiscord
 
         public async Task MainAsync()
         {
+            var files = Directory.GetFiles("Scripts");
+
+            foreach (var file in files)
+            {
+                var x = CSScript.Evaluator.LoadFile<IScript>(file);
+                x.Test();
+            }
+
             client = new DiscordSocketClient();
             client.Log += Log;
             client.MessageReceived += ReceiveMessage;
