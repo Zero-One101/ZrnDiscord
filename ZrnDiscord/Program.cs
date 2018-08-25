@@ -48,15 +48,39 @@ namespace ZrnDiscord
             LogMessage(message);
             if (message.Content.StartsWith(Config.ControlChar.ToString()) && message.Author.Id != client.CurrentUser.Id)
             {
-                await HandleCommand(message);
+                var msg = message.ToString().Substring(1);
+                var cmd = msg.Split(' ')[0];
+                string args;
+                try
+                {
+                    args = msg.Split(new[] { ' ' }, 2)[1];
+                }
+                catch (IndexOutOfRangeException)
+                {
+                    args = null;
+                }
+
+                await HandleCommand(message, cmd, args);
             }
         }
 
-        private async Task HandleCommand(SocketMessage message)
+        private async Task HandleCommand(SocketMessage message, String cmd, String args)
         {
-            if (message.Content == Config.ControlChar + "ping")
+            if (cmd == "ping")
             {
-                await message.Channel.SendMessageAsync("%ping");
+                await message.Channel.SendMessageAsync("Pong!");
+                return;
+            }
+
+            if (cmd == "say")
+            {
+                if (args != null)
+                {
+                    await message.Channel.SendMessageAsync(args);
+                    return;
+                }
+
+                await message.Channel.SendMessageAsync("You didn't say anything!");
             }
         }
     }
