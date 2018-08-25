@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using System;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace ZrnDiscord
@@ -81,6 +82,26 @@ namespace ZrnDiscord
                 }
 
                 await message.Channel.SendMessageAsync("You didn't say anything!");
+            }
+
+            if (cmd == "pun")
+            {
+                var puns = File.ReadAllLines("Puns.txt");
+                if (args != null)
+                {
+                    if (Int32.TryParse(args, out var result))
+                    {
+                        if (!(result < 1) && !(result > puns.Length))
+                        {
+                            await message.Channel.SendMessageAsync(puns[result - 1]);
+                            return;
+                        }
+                    }
+
+                    await message.Channel.SendMessageAsync("Invalid number! Number must be between 1 and " + puns.Length + ".\r\nGrabbing random pun");
+                }
+
+                await message.Channel.SendMessageAsync(puns[new Random().Next(puns.Length)]);
             }
         }
     }
