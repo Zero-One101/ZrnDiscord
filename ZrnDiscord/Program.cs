@@ -10,17 +10,18 @@ namespace ZrnDiscord
     class Program
     {
         private DiscordSocketClient client;
+        private string[] scripts;
 
         static void Main(string[] args) => new Program().MainAsync().GetAwaiter().GetResult();
 
         public async Task MainAsync()
         {
-            var files = Directory.GetFiles("Scripts");
+            scripts = Directory.GetFiles("Scripts");
 
-            foreach (var file in files)
+            foreach (var file in scripts)
             {
                 var x = CSScript.Evaluator.LoadFile<IScript>(file);
-                x.Test();
+                x.ScriptInit();
             }
 
             client = new DiscordSocketClient();
@@ -76,41 +77,13 @@ namespace ZrnDiscord
 
         private async Task HandleCommand(SocketMessage message, String cmd, String args)
         {
-            if (cmd == "ping")
+            foreach (var script in scripts)
             {
-                await message.Channel.SendMessageAsync("Pong!");
-                return;
-            }
-
-            if (cmd == "say")
-            {
-                if (args != null)
+                var x = CSScript.Evaluator.LoadFile<IScript>(script);
+                if (x.Execute(message, cmd, args))
                 {
-                    await message.Channel.SendMessageAsync(args);
-                    return;
+                    break;
                 }
-
-                await message.Channel.SendMessageAsync("You didn't say anything!");
-            }
-
-            if (cmd == "pun")
-            {
-                var puns = File.ReadAllLines("Puns.txt");
-                if (args != null)
-                {
-                    if (Int32.TryParse(args, out var result))
-                    {
-                        if (!(result < 1) && !(result > puns.Length))
-                        {
-                            await message.Channel.SendMessageAsync(puns[result - 1]);
-                            return;
-                        }
-                    }
-
-                    await message.Channel.SendMessageAsync("Invalid number! Number must be between 1 and " + puns.Length + ".\r\nGrabbing random pun");
-                }
-
-                await message.Channel.SendMessageAsync(puns[new Random().Next(puns.Length)]);
             }
         }
     }

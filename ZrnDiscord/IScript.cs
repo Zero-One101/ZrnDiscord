@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Discord.WebSocket;
 
 namespace ZrnDiscord
 {
     public interface IScript
     {
-        void Test();
+        string[] Commands { get; }
+
+        void ScriptInit();
+        bool Execute(SocketMessage msg, string cmd, string args);
+        void ScriptShutdown();
     }
 }
