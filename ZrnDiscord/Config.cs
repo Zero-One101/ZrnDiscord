@@ -19,6 +19,11 @@ namespace ZrnDiscord
 
             for (var i = 0; i < config.Length; i++)
             {
+                // Allow for comments in the config
+                if (config[i].StartsWith("#"))
+                {
+                    continue;
+                }
                 var prop = config[i].Split('=');
                 props.Add(prop[0], prop[1]);
             }
