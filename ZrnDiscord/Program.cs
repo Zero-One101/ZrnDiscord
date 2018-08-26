@@ -1,6 +1,8 @@
-﻿using Discord;
+﻿using CSScriptLibrary;
+using Discord;
 using Discord.WebSocket;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -9,11 +11,15 @@ namespace ZrnDiscord
     class Program
     {
         private DiscordSocketClient client;
+        private List<IScript> scripts;
+        private bool quit = false;
 
         static void Main(string[] args) => new Program().MainAsync().GetAwaiter().GetResult();
 
         public async Task MainAsync()
         {
+            LoadScripts();
+
             client = new DiscordSocketClient();
             client.Log += Log;
             client.MessageReceived += ReceiveMessage;
@@ -23,7 +29,41 @@ namespace ZrnDiscord
             await client.LoginAsync(TokenType.Bot, token);
             await client.StartAsync();
 
-            await Task.Delay(-1);
+            while (!quit)
+            {
+                await Task.Delay(-1);
+            }
+
+            UnloadScripts();
+        }
+
+        private void ReloadScripts()
+        {
+            UnloadScripts();
+            LoadScripts();
+        }
+
+        private void LoadScripts()
+        {
+            LogInfo("Core", "Loading scripts");
+            scripts = new List<IScript>();
+            var files = Directory.GetFiles("Scripts");
+
+            foreach (var file in files)
+            {
+                var script = CSScript.Evaluator.LoadFile<IScript>(file);
+                script.ScriptInit();
+                scripts.Add(script);
+            }
+        }
+
+        private void UnloadScripts()
+        {
+            LogInfo("Core", "Unloading scripts");
+            foreach (var script in scripts)
+            {
+                script.ScriptShutdown();
+            }
         }
 
         private Task Log(LogMessage msg)
@@ -67,41 +107,26 @@ namespace ZrnDiscord
 
         private async Task HandleCommand(SocketMessage message, String cmd, String args)
         {
-            if (cmd == "ping")
+            if (cmd == "reload")
             {
-                await message.Channel.SendMessageAsync("Pong!");
+                ReloadScripts();
                 return;
             }
 
-            if (cmd == "say")
+            try
             {
-                if (args != null)
+                foreach (var script in scripts)
                 {
-                    await message.Channel.SendMessageAsync(args);
-                    return;
-                }
-
-                await message.Channel.SendMessageAsync("You didn't say anything!");
-            }
-
-            if (cmd == "pun")
-            {
-                var puns = File.ReadAllLines("Puns.txt");
-                if (args != null)
-                {
-                    if (Int32.TryParse(args, out var result))
+                    if (await script.Execute(message, cmd, args))
                     {
-                        if (!(result < 1) && !(result > puns.Length))
-                        {
-                            await message.Channel.SendMessageAsync(puns[result - 1]);
-                            return;
-                        }
+                        break;
                     }
-
-                    await message.Channel.SendMessageAsync("Invalid number! Number must be between 1 and " + puns.Length + ".\r\nGrabbing random pun");
                 }
-
-                await message.Channel.SendMessageAsync(puns[new Random().Next(puns.Length)]);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                await message.Channel.SendMessageAsync("Script execution failed! See console for details.");
             }
         }
     }
