@@ -2,6 +2,7 @@
 using Discord;
 using Discord.WebSocket;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -10,19 +11,14 @@ namespace ZrnDiscord
     class Program
     {
         private DiscordSocketClient client;
-        private string[] scripts;
+        private List<IScript> scripts;
+        private bool quit = false;
 
         static void Main(string[] args) => new Program().MainAsync().GetAwaiter().GetResult();
 
         public async Task MainAsync()
         {
-            scripts = Directory.GetFiles("Scripts");
-
-            foreach (var file in scripts)
-            {
-                var x = CSScript.Evaluator.LoadFile<IScript>(file);
-                x.ScriptInit();
-            }
+            LoadScripts();
 
             client = new DiscordSocketClient();
             client.Log += Log;
@@ -33,7 +29,41 @@ namespace ZrnDiscord
             await client.LoginAsync(TokenType.Bot, token);
             await client.StartAsync();
 
-            await Task.Delay(-1);
+            while (!quit)
+            {
+                await Task.Delay(-1);
+            }
+
+            UnloadScripts();
+        }
+
+        private void ReloadScripts()
+        {
+            UnloadScripts();
+            LoadScripts();
+        }
+
+        private void LoadScripts()
+        {
+            LogInfo("Core", "Loading scripts");
+            scripts = new List<IScript>();
+            var files = Directory.GetFiles("Scripts");
+
+            foreach (var file in files)
+            {
+                var script = CSScript.Evaluator.LoadFile<IScript>(file);
+                script.ScriptInit();
+                scripts.Add(script);
+            }
+        }
+
+        private void UnloadScripts()
+        {
+            LogInfo("Core", "Unloading scripts");
+            foreach (var script in scripts)
+            {
+                script.ScriptShutdown();
+            }
         }
 
         private Task Log(LogMessage msg)
@@ -77,13 +107,26 @@ namespace ZrnDiscord
 
         private async Task HandleCommand(SocketMessage message, String cmd, String args)
         {
-            foreach (var script in scripts)
+            if (cmd == "reload")
             {
-                var x = CSScript.Evaluator.LoadFile<IScript>(script);
-                if (x.Execute(message, cmd, args))
+                ReloadScripts();
+                return;
+            }
+
+            try
+            {
+                foreach (var script in scripts)
                 {
-                    break;
+                    if (await script.Execute(message, cmd, args))
+                    {
+                        break;
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                await message.Channel.SendMessageAsync("Script execution failed! See console for details.");
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using Discord.WebSocket;
+using System.Threading.Tasks;
 
 namespace ZrnDiscord
 {
@@ -7,7 +8,7 @@ namespace ZrnDiscord
         string[] Commands { get; }
 
         void ScriptInit();
-        bool Execute(SocketMessage msg, string cmd, string args);
+        Task<bool> Execute(SocketMessage msg, string cmd, string args);
         void ScriptShutdown();
     }
 }

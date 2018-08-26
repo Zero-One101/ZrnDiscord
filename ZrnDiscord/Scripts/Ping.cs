@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using System.Threading.Tasks;
 using Discord.WebSocket;
 
 namespace ZrnDiscord.Scripts
@@ -9,11 +10,11 @@ namespace ZrnDiscord.Scripts
 
         public void ScriptInit() { }
 
-        public bool Execute(SocketMessage msg, string cmd, string args)
+        public async Task<bool> Execute(SocketMessage msg, string cmd, string args)
         {
             if (Commands.Contains(cmd))
             {
-                msg.Channel.SendMessageAsync("Pong!");
+                await msg.Channel.SendMessageAsync("Pong!");
                 return true;
             }
 
